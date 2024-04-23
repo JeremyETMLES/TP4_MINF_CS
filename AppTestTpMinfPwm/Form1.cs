@@ -233,7 +233,7 @@ namespace AppCsTp2Pwm
             ushort iFreq = 0;
             ushort iAmpl = 0;
             ushort iOffset = 0;
-
+            ushort iSave = 0;
             string tmp = "";
 
             // Traitement de la réception
@@ -270,6 +270,10 @@ namespace AppCsTp2Pwm
                     {
                         iOffset = i;
                     }
+                    else if (RxMess[i] == 'W')
+                    {
+                        iSave = i;
+                    }
                     i++;
                 } while (RxMess[i] != 0x23);    // Tant que Rxmess[i] != #
                 //for (i = 1; i < 5; i++)
@@ -305,11 +309,19 @@ namespace AppCsTp2Pwm
 
                 j = 2;
                 tmp = "";
-                for (j += iFreq; j <= iAmpl; j++)
+                for (j += iAmpl; j <= iOffset; j++)
                 {
                     tmp += NumToHex(RxMess[j]) + " ";
                 }
-                txtFreq.Text = tmp;
+                txtAmpl.Text = tmp;
+
+                j = 2;
+                tmp = "";
+                for (j += iOffset; j <= iSave; j++)
+                {
+                    tmp += NumToHex(RxMess[j]) + " ";
+                }
+                txtOffset.Text = tmp;
 
                 //Affichage de la trame recue
                 tmp = "";
