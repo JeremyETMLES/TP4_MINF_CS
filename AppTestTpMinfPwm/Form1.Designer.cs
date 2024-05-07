@@ -127,7 +127,7 @@
             this.gbTx.Size = new System.Drawing.Size(250, 286);
             this.gbTx.TabIndex = 21;
             this.gbTx.TabStop = false;
-            this.gbTx.Text = "TX";
+            this.gbTx.Text = "Transmition";
             // 
             // cbForme
             // 
@@ -310,7 +310,7 @@
             this.gbRx.Size = new System.Drawing.Size(250, 286);
             this.gbRx.TabIndex = 22;
             this.gbRx.TabStop = false;
-            this.gbRx.Text = "RX";
+            this.gbRx.Text = "Réception";
             // 
             // txtOffset
             // 
@@ -410,7 +410,7 @@
             this.Margin = new System.Windows.Forms.Padding(2);
             this.MaximizeBox = false;
             this.Name = "Form1";
-            this.Text = "App de test TP MINF PWM";
+            this.Text = "App de test TP MINF";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_FormClosing);
             this.gbCom.ResumeLayout(false);
             this.gbTx.ResumeLayout(false);

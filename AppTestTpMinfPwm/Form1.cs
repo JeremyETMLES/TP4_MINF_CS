@@ -17,9 +17,9 @@ namespace AppCsTp2Pwm
 
         const byte stx = 0xAA;
         const int m_MessSize = 5;
-        CalCrc16 MyCrc = new CalCrc16();
 
-        char[] tbFormes = { 'S', 'C', 'T', 'D' };  
+        // Tableau de correspondance pour les formes
+        char[] tbFormes = { 'S', 'C', 'T', 'D' };  // S = sinus, C = carré, T = triangle, D = dent de scie
 
         public Form1()
         {
@@ -37,13 +37,13 @@ namespace AppCsTp2Pwm
 
         void DispTxMess(byte[] Mess, int len)
         {
-            string tmp = "";
+            string messAffiche = "";
 
             for (int i = 0; i < len; i++)
             {
-                tmp = tmp + NumToHex(Mess[i]) + " ";
+                messAffiche = messAffiche + NumToHex(Mess[i]) + " ";
             }
-            lstDataOut.Items.Add(tmp);
+            lstDataOut.Items.Add(messAffiche);
 
             //ne garde que les 10 dernières lignes
             if (lstDataOut.Items.Count > 10)
@@ -61,46 +61,40 @@ namespace AppCsTp2Pwm
 
         void composeMessage( ref byte[] Mess)
         {
-            //ushort crc = 0xFFFF;
-            //sbyte TmpVal;
-            string tmpVal;
+            string tmpVal;  // Variable de sauvegarde temporaire des valeures
 
-            //Mess[0] = 33;   // ! = 33 = 0x21
-            Message = "!S=";
-            //crc = MyCrc.updateCRC16(crc, stx);
-            //TmpVal = (sbyte)tbFormes[cbForme.SelectedIndex];
+            Message = "!S=";    // Commencer le message par "!S="
+
+            // Essayer de récupérer la forme du signal
             try
             {
                 tmpVal = tbFormes[cbForme.SelectedIndex].ToString();
             }
-            catch
+            catch   
             {
+                // Mettre la forme par default
                 tmpVal = tbFormes[0].ToString();
             }
-            // Mess[1] = ConvSignedToByte(TmpVal);
-            //Mess[1] = (byte)TmpVal;
-            Message = Message + tmpVal + "F=";
-            //crc = MyCrc.updateCRC16(crc, Mess[1]);
-            //TmpVal = (sbyte)nudFreq.Value;
+
+            // Écriture de la forme
+            Message += tmpVal + "F=";
+            // Récupération de la fréquence
             tmpVal = nudFreq.Value.ToString();
-            //Mess[2] = ConvSignedToByte(TmpVal);
-            //Mess[2] = (byte)TmpVal;
-            Message = Message + tmpVal + "A=";
-            //crc = MyCrc.updateCRC16(crc, Mess[2]);
-            //Mess[3] = (byte)(crc >> 8);      // attention MSB
-            //Mess[4] = (byte)(crc & 0xFF);    // attention LSB
-            //TmpVal = (sbyte)nudAmpl.Value;
+            // Écriture de la fréquence
+            Message += tmpVal + "A=";
+            // Récupération de l'amplitude
             tmpVal = nudAmpl.Value.ToString();
-            //Mess[3] = (byte)TmpVal;
-            Message = Message + tmpVal + "O=";
-            //TmpVal = (sbyte)nudOffset.Value;
+            // Écriture de l'amplitude
+            Message += tmpVal + "O=";
+            // Écriture du signe de l'offset si nécessaire
             if (nudOffset.Value >= 0)
             {
                 Message += "+";
             }
+            // Récupération de l'offset
             tmpVal = nudOffset.Value.ToString();
-            //Mess[4] = (byte)TmpVal;
-            Message = Message + tmpVal + "W=";
+            // Écriture de la sauvegarde
+            Message += tmpVal + "W=";
             if (chkSave.Checked)
             {
                 Message += "1#";
@@ -111,23 +105,7 @@ namespace AppCsTp2Pwm
             }
 
             DispTxMess(Message);   //Affichage trame TX
-        }
-
-        // compose un message raccourci sans le CRC
-        void composeBadMessage(ref byte[] Mess)
-        {
-            // compose un message raccourci sans le CRC
-            sbyte TmpVal;
-
-            Mess[0] = stx;
-            TmpVal = (sbyte)cbForme.SelectedValue;
-            Mess[1] = (byte)TmpVal;
-            TmpVal = (sbyte)nudFreq.Value;
-            Mess[2] = (byte)TmpVal;
-            
-            DispTxMess(Mess, 3);   //Affichage trame TX
         }    
-    
                
         string NumToHex(byte val)
         {
@@ -141,15 +119,13 @@ namespace AppCsTp2Pwm
 
         void SendMessage(int count)
         {
-            int NbCharMess;
             // Envoie le message si le port est ouvert
             if (serialPort1.IsOpen) {
 
-                composeMessage(ref Mess1);
-                NbCharMess = m_MessSize;
+                composeMessage(ref Mess1);  // Compose le message
 
                 try {
-                    //serialPort1.Write(Mess1, 0, NbCharMess);
+                    // Écrit le message sur le port
                     serialPort1.Write(Message);
                 }
                 catch (Exception ex)
@@ -223,113 +199,109 @@ namespace AppCsTp2Pwm
 
         public void DispInListRxData()
         {
-            ushort i = 1;
-            ushort j = 0;
-            byte[] RxMess = new byte[30];
-            //string rxMessage;
-            //ushort Crc;
+            ushort i = 0;   // Index de réception
+            ushort j = 0;   // Index de reécriture
+            byte[] RxMess = new byte[30];   // Tableau de sauvegarde du message reçu
+                        
+            // Index
+            ushort iForme = 0;  // Pour la forme
+            ushort iFreq = 0;   // Pour la fréquence
+            ushort iAmpl = 0;   // Pour l'amplitude
+            ushort iOffset = 0; // Pour l'offset
+            ushort iSave = 0;   // Pour la sauvegarde
 
-            ushort iForme = 0;
-            ushort iFreq = 0;
-            ushort iAmpl = 0;
-            ushort iOffset = 0;
-            ushort iSave = 0;
-            string tmp = "";
+            string messAffiche = "";
+            int calculTmp = 0;
 
-            // Traitement de la réception
-
-            //cherche début de trame
+            // Recherche début de trame
             do
             {
                 RxMess[0] = (byte)serialPort1.ReadByte();
             } while (RxMess[0] != 0x21);    // Tant que RxMess != "!"
-            //} while (RxMess[0] != stx && serialPort1.BytesToRead >= 4);
 
-            //rxMessage = serialPort1.ReadLine();
-
-
-            //décode suite du msg
-            if (serialPort1.BytesToRead >= 4)
+            // Lecture des bytes dé qu'on en a reçu 18
+            if (serialPort1.BytesToRead >= 18)
             {
                 do
                 {
-                    RxMess[i] = (byte)serialPort1.ReadByte();
-                    if (RxMess[i] == 'S')
+                    // Lecture du port si il y a des bytes à lire
+                    if (serialPort1.BytesToRead != 0)
                     {
-                        iForme = i;
+                        i++;
+                        RxMess[i] = (byte)serialPort1.ReadByte();
+                        // Sauvegarde des index pour les valeurs
+                        if ((RxMess[i] == 'S') && (iForme == 0))
+                        {
+                            iForme = i;
+                        }
+                        else if (RxMess[i] == 'F')
+                        {
+                            iFreq = i;
+                        }
+                        else if (RxMess[i] == 'A')
+                        {
+                            iAmpl = i;
+                        }
+                        else if (RxMess[i] == 'O')
+                        {
+                            iOffset = i;
+                        }
+                        else if (RxMess[i] == 'W')
+                        {
+                            iSave = i;
+                        }
                     }
-                    else if(RxMess[i] == 'F')
-                    {
-                        iFreq = i;
-                    }
-                    else if (RxMess[i] == 'A')
-                    {
-                        iAmpl = i;
-                    }
-                    else if (RxMess[i] == 'O')
-                    {
-                        iOffset = i;
-                    }
-                    else if (RxMess[i] == 'W')
-                    {
-                        iSave = i;
-                    }
-                    i++;
-                } while (RxMess[i] != 0x23);    // Tant que Rxmess[i] != #
-                //for (i = 1; i < 5; i++)
-                //{
-                //    RxMess[i] = (byte)serialPort1.ReadByte();
-                //}
+                } while (RxMess[i] != 0x23);    // Faire tant que Rxmess[i] n'est pas égal à #
 
-                //// Calcul du CRC sur les 5 premiers
-                //Crc = 0xFFFF;
-                //for (i = 0; i < 5; i++)
-                //{
-                //    Crc = MyCrc.updateCRC16(Crc, RxMess[i]);
-                //}
+                // Écriture de la forme dans la case prévue
+                txtForme.Text = ((char)RxMess[iForme + 2]).ToString();
 
-                //if (Crc == 0)
-                //{
-                //    txtForme.Text = ConvUsignedToSignedString(RxMess[1]);
-                //    txtFreq.Text = ConvUsignedToSignedString(RxMess[2]);
-                //}
-                //else
-                //{
-                //    txtForme.Text = "Bad CRC";
-                //    txtFreq.Text = "Bad CRC";
-                //}
-                txtForme.Text = NumToHex(RxMess[iForme + 2]) + " ";
-
+                // Calcul et écriture de la fréquence dans la case prévue
                 j = 2;
-                for (j += iFreq ; j <= iAmpl; j++)
+                // Reconstitution de la valeur
+                for (j += iFreq ; j < iAmpl; j++)
                 {
-                    tmp += NumToHex(RxMess[j]) + " ";
+                    calculTmp *= 10;
+                    calculTmp += RxMess[j] - '0';
                 }
-                txtFreq.Text = tmp;
+                txtFreq.Text = calculTmp.ToString();
 
+                // Calcul et écriture de l'amplitude dans la case prévue
                 j = 2;
-                tmp = "";
-                for (j += iAmpl; j <= iOffset; j++)
+                calculTmp = 0;
+                // Reconstitution de la valeur
+                for (j += iAmpl; j < iOffset; j++)
                 {
-                    tmp += NumToHex(RxMess[j]) + " ";
+                    calculTmp *= 10;
+                    calculTmp += RxMess[j] - '0';
                 }
-                txtAmpl.Text = tmp;
+                txtAmpl.Text = calculTmp.ToString();
 
-                j = 2;
-                tmp = "";
-                for (j += iOffset; j <= iSave; j++)
+                // Calcul et écriture de l'offset dans la case prévue
+                j = 3;
+                calculTmp = 0;
+                // Reconstitution de la valeur
+                for (j += iOffset; j < iSave; j++)
                 {
-                    tmp += NumToHex(RxMess[j]) + " ";
+                    calculTmp *= 10;
+                    calculTmp += RxMess[j] - '0';
                 }
-                txtOffset.Text = tmp;
+                // Ajout du signe
+                if(RxMess[iOffset+2] == '-')
+                {
+                    calculTmp *= -1;
+                }
+                txtOffset.Text = calculTmp.ToString();
 
                 //Affichage de la trame recue
-                tmp = "";
+                messAffiche = "";
                 for (j = 0; j <= i; j++)
                 {
-                    tmp = tmp + NumToHex(RxMess[j]) + " ";
+                    //Reécriture du message reçu
+                    messAffiche += ((char)RxMess[j]).ToString();
                 }
-                lstDataIn.Items.Add(tmp);
+                // Envoy du message reécrit dans la boite de réception
+                lstDataIn.Items.Add(messAffiche);
 
                 //ne garde que les 10 dernières lignes
                 if (lstDataIn.Items.Count > 10)
@@ -359,37 +331,69 @@ namespace AppCsTp2Pwm
             m_SendCount = 0;
             SendMessage(m_SendCount);
 
-            //stoppe envoi continu
-            if (timer1.Enabled)
+            if (serialPort1.IsOpen)
             {
-                timer1.Stop();
+                //stoppe envoi continu
+                if (timer1.Enabled)
+                {
+                    timer1.Stop();
+                    btSendContinuous.Text = "Envoi continu";
+                }
+            }
+            else
+            {
+                MessageBox.Show("Port non ouvert", "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                timer1.Stop();     // pour éviter problème en mode continu
+
+                // Fermeture du port
+                serialPort1.Close();
+                btOpenClose.Text = "Open";
+                gbTx.Enabled = false;
+                gbRx.Enabled = false;
+                cboPortNames.Enabled = true;
                 btSendContinuous.Text = "Envoi continu";
-            }           
+            }
         }
 
         private void btSendContinuous_Click(object sender, EventArgs e)
         {
-            if (!timer1.Enabled)
+            if (serialPort1.IsOpen)
             {
-                //active envoi continu
-                timer1.Interval = 50;  // pour 1 message chaque 50 ms
-                m_SendCount = 0;
-                ctsCount = 0;
-                timer1.Start();
-                btSendContinuous.Text = "Stop envoi";
+                if (!timer1.Enabled)
+                {
+                    //active envoi continu
+                    timer1.Interval = 50;  // pour 1 message chaque 50 ms
+                    m_SendCount = 0;
+                    ctsCount = 0;
+                    timer1.Start();
+                    btSendContinuous.Text = "Stop envoi";
+                }
+                else
+                {
+                    //désactive envoi continu
+                    timer1.Stop();
+                    btSendContinuous.Text = "Envoi continu";
+                }
             }
             else
             {
-                //désactive envoi continu
-                timer1.Stop();
+                MessageBox.Show("Port non ouvert", "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                timer1.Stop();     // pour éviter problème en mode continu
+
+                // Fermeture du port
+                serialPort1.Close();
+                btOpenClose.Text = "Open";
+                gbTx.Enabled = false;
+                gbRx.Enabled = false;
+                cboPortNames.Enabled = true;
                 btSendContinuous.Text = "Envoi continu";
             }
-
 
         }
 
         private void timer1_Tick(object sender, EventArgs e)
         {
+            
             if (serialPort1.CtsHolding == true) //ctrl de flux autorise émission ? 
             {
                 ctsCount = 0;
@@ -401,7 +405,7 @@ namespace AppCsTp2Pwm
             {
                 ctsCount++;
                 if (ctsCount >= 10)   //stoppe émission et timer au bout de 10x avec ctrl de flux qui bloque
-                {                   
+                {
                     //désactive envoi continu
                     timer1.Stop();
                     btSendContinuous.Text = "Envoi continu";
