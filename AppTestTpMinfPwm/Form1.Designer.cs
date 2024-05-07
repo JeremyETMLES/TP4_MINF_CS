@@ -106,6 +106,7 @@
             this.cboPortNames.Size = new System.Drawing.Size(98, 21);
             this.cboPortNames.Sorted = true;
             this.cboPortNames.TabIndex = 17;
+            this.cboPortNames.DropDown += new System.EventHandler(this.cboPortNames_DropDown);
             // 
             // gbTx
             // 

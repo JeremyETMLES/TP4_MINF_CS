@@ -7,13 +7,15 @@ namespace AppCsTp2Pwm
 {
     public partial class Form1 : Form
     {
+        const ushort SAUT_INDEX = 2;    // Constante pour le nombre de saut d'index avant la valeur
+
         public delegate void ReceiverD();
         public ReceiverD myDelegate;
         int ctsCount = 0;
         int m_SendCount = 0;
         int m_DispCount = 0;
         byte[] Mess1 = new byte[5];
-        string Message = "";
+        string Message = "";    // Variable de sauvegarde du message à envoyer
 
         const byte stx = 0xAA;
         const int m_MessSize = 5;
@@ -141,6 +143,8 @@ namespace AppCsTp2Pwm
             } else { 
                 MessageBox.Show("Port non ouvert", "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 timer1.Stop();     // pour éviter problème en mode continu
+
+                CloseCom(); // Fermeture du port de communication
             }
         }
 
@@ -173,6 +177,7 @@ namespace AppCsTp2Pwm
                 {
                     if (!serialPort1.IsOpen)
                         MessageBox.Show(ex.ToString(), "Erreur à l'ouverture du port !", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    CloseCom(); // Fermeture du port de communication
                 }
 
                 cbForme.SelectedIndex = 0;
@@ -181,12 +186,7 @@ namespace AppCsTp2Pwm
             {
                 serialPort1.Close();
 
-                btOpenClose.Text = "Open";
-                gbTx.Enabled = false;
-                gbRx.Enabled = false;
-                cboPortNames.Enabled = true;
-                timer1.Stop();
-                btSendContinuous.Text = "Envoi continu";
+                CloseCom(); // Fermeture du port de communication
             }
 
         } // end btOpenClose_Click
@@ -257,7 +257,7 @@ namespace AppCsTp2Pwm
                 txtForme.Text = ((char)RxMess[iForme + 2]).ToString();
 
                 // Calcul et écriture de la fréquence dans la case prévue
-                j = 2;
+                j = SAUT_INDEX;
                 // Reconstitution de la valeur
                 for (j += iFreq ; j < iAmpl; j++)
                 {
@@ -267,7 +267,7 @@ namespace AppCsTp2Pwm
                 txtFreq.Text = calculTmp.ToString();
 
                 // Calcul et écriture de l'amplitude dans la case prévue
-                j = 2;
+                j = SAUT_INDEX;
                 calculTmp = 0;
                 // Reconstitution de la valeur
                 for (j += iAmpl; j < iOffset; j++)
@@ -278,7 +278,7 @@ namespace AppCsTp2Pwm
                 txtAmpl.Text = calculTmp.ToString();
 
                 // Calcul et écriture de l'offset dans la case prévue
-                j = 3;
+                j = SAUT_INDEX + 1;
                 calculTmp = 0;
                 // Reconstitution de la valeur
                 for (j += iOffset; j < iSave; j++)
@@ -287,7 +287,7 @@ namespace AppCsTp2Pwm
                     calculTmp += RxMess[j] - '0';
                 }
                 // Ajout du signe
-                if(RxMess[iOffset+2] == '-')
+                if(RxMess[iOffset + SAUT_INDEX] == '-')
                 {
                     calculTmp *= -1;
                 }
@@ -331,26 +331,10 @@ namespace AppCsTp2Pwm
             m_SendCount = 0;
             SendMessage(m_SendCount);
 
-            if (serialPort1.IsOpen)
+            //stoppe envoi continu
+            if (timer1.Enabled)
             {
-                //stoppe envoi continu
-                if (timer1.Enabled)
-                {
-                    timer1.Stop();
-                    btSendContinuous.Text = "Envoi continu";
-                }
-            }
-            else
-            {
-                MessageBox.Show("Port non ouvert", "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                timer1.Stop();     // pour éviter problème en mode continu
-
-                // Fermeture du port
-                serialPort1.Close();
-                btOpenClose.Text = "Open";
-                gbTx.Enabled = false;
-                gbRx.Enabled = false;
-                cboPortNames.Enabled = true;
+                timer1.Stop();
                 btSendContinuous.Text = "Envoi continu";
             }
         }
@@ -380,13 +364,7 @@ namespace AppCsTp2Pwm
                 MessageBox.Show("Port non ouvert", "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 timer1.Stop();     // pour éviter problème en mode continu
 
-                // Fermeture du port
-                serialPort1.Close();
-                btOpenClose.Text = "Open";
-                gbTx.Enabled = false;
-                gbRx.Enabled = false;
-                cboPortNames.Enabled = true;
-                btSendContinuous.Text = "Envoi continu";
+                CloseCom(); // Fermeture du port de communication
             }
 
         }
@@ -445,6 +423,39 @@ namespace AppCsTp2Pwm
         private void cbForme_SelectedIndexChanged(object sender, EventArgs e)
         {
 
+        }
+
+        private void cboPortNames_DropDown(object sender, EventArgs e)
+        {
+            // Vérification des ports
+            // Get a list of serial port names.
+            string[] ports = SerialPort.GetPortNames();
+            //Array.Sort(ports);
+            cboPortNames.Items.Clear();
+            cboPortNames.Items.AddRange(ports);
+            cboPortNames.SelectedIndex = 0;
+        }
+
+        private void CloseCom()
+        {
+            // Fermeture du port
+            serialPort1.Close();
+            btOpenClose.Text = "Open";
+            gbTx.Enabled = false;
+            gbRx.Enabled = false;
+            cboPortNames.Enabled = true;
+            btSendContinuous.Text = "Envoi continu";
+
+            // Vérification des ports
+            // Get a list of serial port names.
+            string[] ports = SerialPort.GetPortNames();
+            cboPortNames.Items.Clear();
+            cboPortNames.Items.AddRange(ports);
+            cboPortNames.SelectedIndex = 0;
+
+            // Nettoyage des listes de transmition récéption
+            lstDataIn.Items.Clear();
+            lstDataOut.Items.Clear();
         }
     }
 }
