@@ -371,25 +371,8 @@ namespace AppCsTp2Pwm
 
         private void timer1_Tick(object sender, EventArgs e)
         {
-            
-            if (serialPort1.CtsHolding == true) //ctrl de flux autorise émission ? 
-            {
-                ctsCount = 0;
-                // Envoie le message
-                m_SendCount = m_SendCount + 1;
+
                 SendMessage(m_SendCount);
-            }
-            else
-            {
-                ctsCount++;
-                if (ctsCount >= 10)   //stoppe émission et timer au bout de 10x avec ctrl de flux qui bloque
-                {
-                    //désactive envoi continu
-                    timer1.Stop();
-                    btSendContinuous.Text = "Envoi continu";
-                    MessageBox.Show("Le contrôle de flux HW bloque l'émission !", "Erreur", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }
-            }
  
         }
 
