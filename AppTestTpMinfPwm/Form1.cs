@@ -185,7 +185,7 @@ namespace AppCsTp2Pwm
             else //fermeture
             {
                 serialPort1.Close();
-
+                timer1.Stop();     // pour éviter problème en mode continu
                 CloseCom(); // Fermeture du port de communication
             }
 
@@ -310,20 +310,20 @@ namespace AppCsTp2Pwm
             }
         }
 
-        string ConvUsignedToSignedString(byte val)
-        {
-            string Res = "";
-            short tmp;
-            if (val < 128) {
-                tmp = val;
-            } else
-            {
-                tmp = val;
-                tmp -= 256;
-            }
-            Res = tmp.ToString();
-            return Res;
-        }
+        //string ConvUsignedToSignedString(byte val)
+        //{
+        //    string Res = "";
+        //    short tmp;
+        //    if (val < 128) {
+        //        tmp = val;
+        //    } else
+        //    {
+        //        tmp = val;
+        //        tmp -= 256;
+        //    }
+        //    Res = tmp.ToString();
+        //    return Res;
+        //}
 
         private void btSend_Click(object sender, EventArgs e)
         {
@@ -346,7 +346,7 @@ namespace AppCsTp2Pwm
                 if (!timer1.Enabled)
                 {
                     //active envoi continu
-                    timer1.Interval = 50;  // pour 1 message chaque 50 ms
+                    timer1.Interval = 25;  // pour 1 message chaque 50 ms
                     m_SendCount = 0;
                     ctsCount = 0;
                     timer1.Start();
@@ -371,9 +371,10 @@ namespace AppCsTp2Pwm
 
         private void timer1_Tick(object sender, EventArgs e)
         {
-
+            if (serialPort1.IsOpen) 
+            {
                 SendMessage(m_SendCount);
- 
+            }
         }
 
         private void Form1_FormClosing(object sender, FormClosingEventArgs e)
