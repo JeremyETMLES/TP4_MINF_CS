@@ -310,21 +310,6 @@ namespace AppCsTp2Pwm
             }
         }
 
-        //string ConvUsignedToSignedString(byte val)
-        //{
-        //    string Res = "";
-        //    short tmp;
-        //    if (val < 128) {
-        //        tmp = val;
-        //    } else
-        //    {
-        //        tmp = val;
-        //        tmp -= 256;
-        //    }
-        //    Res = tmp.ToString();
-        //    return Res;
-        //}
-
         private void btSend_Click(object sender, EventArgs e)
         {
             // Envoie le message si le port est ouvert
@@ -409,6 +394,10 @@ namespace AppCsTp2Pwm
 
         }
 
+        // Fonction du dropdown de la selection du port
+        // Clear les ports affiché et les remplaces par les ports disponibles
+        // Auteur: JAR
+        // Date: 07.05.2024
         private void cboPortNames_DropDown(object sender, EventArgs e)
         {
             // Vérification des ports
@@ -420,6 +409,10 @@ namespace AppCsTp2Pwm
             cboPortNames.SelectedIndex = 0;
         }
 
+        // Fonction de fermeture du port
+        // Ferme le port de communication et réinitialise tout le reste
+        // Auteur: JAR
+        // Date: 07.05.2024
         private void CloseCom()
         {
             // Fermeture du port
